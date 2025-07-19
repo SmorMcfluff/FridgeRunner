@@ -1,3 +1,4 @@
+using Newtonsoft.Json;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -8,6 +9,14 @@ using UnityEngine.UI;
 
 public class LevelSelect : MonoBehaviour
 {
+    JsonSerializerSettings settings = new JsonSerializerSettings
+    {
+        TypeNameHandling = TypeNameHandling.Auto,
+        TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
+        Formatting = Formatting.None,
+        ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+    };
+
     [Header("Replay UI")]
     public GameObject replayEntryPrefab;
     public Transform replayListParent;
@@ -72,10 +81,10 @@ public class LevelSelect : MonoBehaviour
                 try
                 {
                     string json = File.ReadAllText(path);
-                    ReplayData data = JsonUtility.FromJson<ReplayData>(json);
+                    ReplayData data = JsonConvert.DeserializeObject<ReplayData>(json, settings);
 
                     UnityEngine.Debug.Log($"Replay confirmed: {fileName}");
-                    UnityEngine.Debug.Log($"Scene: {data.scene}, Time: {data.time}, Enemies: {data.enemyData?.Count ?? 0}");
+                    UnityEngine.Debug.Log($"Scene: {data.scene}, Enemies: {data.enemyData?.Count ?? 0}");
 
                     ReplayRecordingManager.Instance.isReplay = true;
                     ReplayRecordingManager.Instance.loadedReplay = data;

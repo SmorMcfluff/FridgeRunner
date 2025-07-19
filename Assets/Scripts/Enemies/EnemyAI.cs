@@ -70,7 +70,7 @@ public class EnemyAI : MonoBehaviour
             compactName = "0";
         }
         gameObject.name = compactName;
-        enemyId = gameObject.name;
+        enemyId += gameObject.name;
     }
 
     void Start()

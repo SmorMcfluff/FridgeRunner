@@ -1,14 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.InteropServices.WindowsRuntime;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Newtonsoft.Json;
 
 public class ReplayFileManager : MonoBehaviour
 {
+    private static readonly JsonSerializerSettings settings = new JsonSerializerSettings
+    {
+        TypeNameHandling = TypeNameHandling.Auto,
+        Formatting = Formatting.None,
+        ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+        ContractResolver = new Newtonsoft.Json.Serialization.DefaultContractResolver()
+        {
+            IgnoreSerializableInterface = true,
+            IgnoreSerializableAttribute = true,
+        }
+    };
+
     /// <summary>Returns the full path for a replay file based on the provided data.</summary>
-    private static string FilePath(ReplayData data)
+    private static string FilePath(ReplayData data, string time)
     {
         string folder = EnsureReplayFolder();
         string scene = data.scene switch
@@ -18,9 +30,17 @@ public class ReplayFileManager : MonoBehaviour
             "Level3" => "esouH",
             _=> "SceneName"
         };
-        string sanitizedTime = data.time.Replace(":", "-").Replace(".", "-");
-        string fileName = $"{SanitizeFileName(scene)}_{sanitizedTime}.COLDONE";
-        return Path.Combine(folder, fileName);
+        string sanitizedTime = time.Replace(":", "-").Replace(".", "-");
+        string baseFileName = $"{SanitizeFileName(scene)}_{sanitizedTime}";
+        string extension = ".COLDONE";
+
+        string fullPath = Path.Combine(folder, baseFileName + extension);
+        int counter = 1;
+        while (File.Exists(fullPath))
+        {
+            fullPath = Path.Combine(folder, $"{baseFileName}_{counter++}{extension}");
+        }
+        return fullPath;
     }
 
     /// <summary>Creates the replay folder if it doesn't exist and returns its path.</summary>
@@ -35,42 +55,14 @@ public class ReplayFileManager : MonoBehaviour
     }
 
     /// <summary>Saves a ReplayData object to disk and returns the full file path.</summary>
-    public static string SaveToFile(ReplayData data)
+    public static string SaveToFile(ReplayData data, string time)
     {
-        string path = FilePath(data);
-        string json = JsonUtility.ToJson(data);
+        string path = FilePath(data, time);
+
+        string json = JsonConvert.SerializeObject(data, settings);
         File.WriteAllText(path, json);
         Debug.Log($"Replay saved to: {path}");
         return path;
-    }
-
-    /// <summary>Loads a replay from a specified file path.</summary>
-    public static List<EnemyReplayData> LoadFromFile(string filePath)
-    {
-        if (!File.Exists(filePath))
-        {
-            Debug.LogWarning($"Replay file not found at {filePath}");
-            return new List<EnemyReplayData>();
-        }
-
-        string json = File.ReadAllText(filePath);
-        EnemyReplayDataList wrapper = JsonUtility.FromJson<EnemyReplayDataList>(json);
-        return wrapper?.data ?? new List<EnemyReplayData>();
-    }
-
-    /// <summary>Generates a filename based on the current scene and timestamp.</summary>
-    private static string GetFileName()
-    {
-        string scene = SceneManager.GetActiveScene().name switch
-        {
-            "Level1" => "House",
-            "Level2" => "Maze",
-            "Level3" => "esouH",
-            _ => throw new NotImplementedException($"Scene name '{SceneManager.GetActiveScene().name}' not handled."),
-        };
-
-        string time = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
-        return $"{scene}_{time}";
     }
 
     /// <summary>Replaces invalid filename characters with underscores.</summary>

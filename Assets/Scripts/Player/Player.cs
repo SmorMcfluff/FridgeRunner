@@ -1,4 +1,5 @@
-﻿using TMPro;
+﻿using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -43,6 +44,7 @@ public class Player : MonoBehaviour
     Vector2 inputDir;
     Vector2 currentInputDir;
     private float lastRecordedRotationY = float.MinValue;
+    private Vector3 lastRecordedPosition = Vector3.positiveInfinity;
 
     [Header("Keycard")]
     public bool hasKeycard = false;
@@ -136,35 +138,14 @@ public class Player : MonoBehaviour
 
         inputDir = GetMoveDir();
 
-        float currentRotationY = transform.eulerAngles.y;
-        bool rotationChanged = Mathf.Abs(Mathf.DeltaAngle(currentRotationY, lastRecordedRotationY)) > 0.1f;
         bool inputDirChanged = inputDir != currentInputDir;
 
-        if (rotationChanged || inputDirChanged)
+        if (inputDirChanged)
         {
-            lastRecordedRotationY = currentRotationY;
             currentInputDir = inputDir;
         }
 
         UpdateInteractPrompt();
-    }
-
-    private void RecordFrameInput()
-    {
-        var input = new InputEvent(
-            Time.timeSinceLevelLoad,
-            inputDir,
-            transform.eulerAngles.y,
-            IsSprinting,
-            bufferedJump,
-            bufferedLeftClick,
-            bufferedRightClick,
-            false,
-            transform.position,
-            ""
-        );
-
-        ReplayRecordingManager.Instance.inputList.Add(input);
     }
 
     void FixedUpdate()
@@ -177,17 +158,42 @@ public class Player : MonoBehaviour
             RecordFrameInput();
         }
 
-        if (ReplayRecordingManager.Instance.isReplay || isReplaying)
-        {
-            HandleReplayMovement();
-        }
-        else
+        if (!ReplayRecordingManager.Instance.isReplay || !isReplaying)
         {
             HandlePlayerInputMovement();
         }
-
     }
 
+    private void RecordFrameInput()
+    {
+        float timestamp = Time.timeSinceLevelLoad;
+        ReplayRecordingManager record = ReplayRecordingManager.Instance;
+
+        if ((transform.position - lastRecordedPosition).sqrMagnitude > 0.0001f)
+        {
+            record.inputList.Add(new ME(timestamp, transform.position));
+            lastRecordedPosition = transform.position;
+        }
+
+        float currentY = transform.eulerAngles.y;
+        if (lastRecordedRotationY == float.MinValue || Mathf.Abs(Mathf.DeltaAngle(currentY, lastRecordedRotationY)) > 1f)
+        {
+            ReplayRecordingManager.Instance.inputList.Add(new RE(timestamp, currentY));
+            lastRecordedRotationY = currentY;
+        }
+
+        if (bufferedLeftClick || bufferedRightClick)
+        {
+            Debug.Log("recorded click");
+            record.inputList.Add(new CE(timestamp, bufferedLeftClick, bufferedRightClick));
+        }
+    }
+
+    private void RecordFrameInput(string id)
+    {
+        float timestamp = Time.timeSinceLevelLoad;
+        ReplayRecordingManager.Instance.inputList.Add(new IE(timestamp, id));
+    }
 
     private void HandlePlayerInputMovement()
     {
@@ -217,72 +223,6 @@ public class Player : MonoBehaviour
         bufferedJump = bufferedLeftClick = bufferedRightClick = false;
     }
 
-    private void HandleReplayMovement()
-    {
-        // Use replayInputDir instead of live inputDir
-        bool grounded = groundCheck.IsGrounded();
-        bool sprint = replayIsSprinting;
-        float speedCap = grounded ? (sprint ? sprintSpeed : defaultSpeed) : aerialSpeed;
-
-        Vector3 currentVel = rb.linearVelocity;
-        Vector3 verticalVel = Vector3.up * currentVel.y;
-
-        if (replayInputDir != Vector2.zero)
-        {
-            currentSpeed += acceleration * Time.fixedDeltaTime;
-            if (currentSpeed > speedCap)
-                currentSpeed = speedCap;
-
-            Vector3 inputVector = (transform.forward * replayInputDir.y + transform.right * replayInputDir.x).normalized;
-            Vector3 newFlatVel = inputVector * currentSpeed;
-
-            rb.linearVelocity = newFlatVel + verticalVel;
-        }
-        else
-        {
-            if (grounded)
-            {
-                currentSpeed = 0f;
-                rb.linearVelocity = verticalVel;
-            }
-            else
-            {
-                currentSpeed -= deceleration * Time.fixedDeltaTime;
-                if (currentSpeed < 0f)
-                    currentSpeed = 0f;
-
-                Vector3 flatVel = new Vector3(currentVel.x, 0, currentVel.z);
-                Vector3 direction = flatVel.normalized;
-                Vector3 newFlatVel = direction * currentSpeed;
-
-                rb.linearVelocity = newFlatVel + verticalVel;
-            }
-        }
-
-        if (replayJumpQueued && grounded)
-        {
-            Jump();
-            replayJumpQueued = false;
-        }
-
-        if (replayClickQueued)
-        {
-            if (gunEquipped)
-                Shoot();
-            else
-                handAnim.PlayInteract();
-
-            replayClickQueued = false;
-        }
-
-        if (replayRightClickQueued && hasGun && !isSwitching && !isInteracting)
-        {
-            SwitchHand();
-            replayRightClickQueued = false;
-        }
-    }
-
-
     private Vector2 GetMoveDir()
     {
         float xInput = Input.GetAxisRaw("Horizontal");
@@ -298,7 +238,7 @@ public class Player : MonoBehaviour
         {
             IInteractable interactable = hit.collider.GetComponent<IInteractable>();
             interactable?.OnInteract();
-            RecordInteractionEvent(hit.collider.gameObject.name);
+            RecordFrameInput(hit.collider.gameObject.name);
         }
     }
 
@@ -417,27 +357,6 @@ public class Player : MonoBehaviour
         SceneManager.LoadScene("LevelSelect");
     }
 
-    private void RecordInteractionEvent(string id)
-    {
-        if (!ReplayRecordingManager.Instance.isReplay)
-        {
-            var input = new InputEvent(
-                Time.timeSinceLevelLoad,
-                inputDir,
-                transform.eulerAngles.y,
-                IsSprinting,
-                bufferedJump,
-                bufferedLeftClick,
-                bufferedRightClick,
-                false,
-                transform.position,
-                id
-            );
-            ReplayRecordingManager.Instance.inputList.Add(input);
-        }
-    }
-
-    public void SetReplayMovement(Vector2 inputDir) => replayInputDir = inputDir;
     public void SetReplayRotation(float rotationY)
     {
         isReplaying = true;
@@ -445,6 +364,7 @@ public class Player : MonoBehaviour
         euler.y = rotationY;
         transform.eulerAngles = euler;
     }
+
     public void SetReplayPosition(Vector3 pos)
     {
         transform.position = pos;

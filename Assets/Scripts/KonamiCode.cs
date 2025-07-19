@@ -31,16 +31,7 @@ public class KonamiCode : MonoBehaviour
                 if (currentIndex >= konamiCode.Length)
                 {
                     cheatResult?.Invoke();
-                    ReplayRecordingManager.Instance.inputList.Add(new InputEvent(
-                        Time.timeSinceLevelLoad,
-                        Vector2.zero,
-                        0f,
-                        false,
-                        false, false, false,
-                        true,
-                        Player.Instance.transform.position,
-                        ""
-                    ));
+                    ReplayRecordingManager.Instance.inputList.Add(new KE(Time.timeSinceLevelLoad));
 
                     currentIndex = 0;
                 }

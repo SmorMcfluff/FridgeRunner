@@ -50,6 +50,7 @@ public class Fridge : MonoBehaviour, IInteractable
         if (isActivated) return;
         isActivated = true;
         GameManager.Instance.EndLevel(true);
+        ReplayRecordingManager.Instance.SaveData();
 
         player.GetComponent<Rigidbody>().isKinematic = true;
 
