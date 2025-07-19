@@ -22,8 +22,8 @@ public class ReplayInputPlayer : MonoBehaviour
             var first = inputEvents[0];
 
             // Set initial rotation
-            CameraLook.Instance.SetReplayRotation(first.rotationY);
-            CameraLook.Instance.ForceSetCurrentRotation(first.rotationY);
+            CameraLook.Instance.SetReplayRotation(first.ry);
+            CameraLook.Instance.ForceSetCurrentRotation(first.ry);
         }
     }
 
@@ -32,7 +32,7 @@ public class ReplayInputPlayer : MonoBehaviour
         double elapsedReplayTime = Time.timeSinceLevelLoad;
 
         while (nextEventIndex < inputEvents.Count &&
-               inputEvents[nextEventIndex].timestamp <= elapsedReplayTime)
+               inputEvents[nextEventIndex].ts <= elapsedReplayTime)
         {
             var evt = inputEvents[nextEventIndex];
             ApplyReplayInput(evt);
@@ -46,21 +46,21 @@ public class ReplayInputPlayer : MonoBehaviour
     private void ApplyReplayInput(InputEvent evt)
     {
 
-        Player.Instance.SetReplayPosition(evt.position);
-        Player.Instance.SetReplayMovement(evt.inputDir);
-        Player.Instance.SetReplayRotation(evt.rotationY);
-        Player.Instance.SetReplaySprinting(evt.isSprinting);
-        if (evt.jump)
+        Player.Instance.SetReplayPosition(evt.pos);
+        Player.Instance.SetReplayMovement(evt.id);
+        Player.Instance.SetReplayRotation(evt.ry);
+        Player.Instance.SetReplaySprinting(evt.iS);
+        if (evt.j)
             Player.Instance.TriggerReplayJump();
-        if (evt.leftClick)
+        if (evt.lc)
             Player.Instance.TriggerReplayClick();
-        if (evt.rightClick)
+        if (evt.rc)
             Player.Instance.TriggerReplayRightClick();
-        if (evt.konamiCode)
+        if (evt.kc)
             FindAnyObjectByType<KonamiCode>()?.cheatResult?.Invoke();
-        if (!string.IsNullOrEmpty(evt.interactId))
+        if (!string.IsNullOrEmpty(evt.i))
         {
-            GameObject target = GameObject.Find(evt.interactId);
+            GameObject target = GameObject.Find(evt.i);
             target?.GetComponent<IInteractable>()?.OnInteract();
         }
     }

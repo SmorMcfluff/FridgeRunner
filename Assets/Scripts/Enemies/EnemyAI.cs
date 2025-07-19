@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -62,7 +63,14 @@ public class EnemyAI : MonoBehaviour
         {
             enemyId += WaveManager.Instance.waveNumber.ToString() + "_";
         }
-        enemyId += gameObject.name;
+
+        string compactName = Regex.Match(gameObject.name, @"\d+").Value;
+        if (compactName == string.Empty)
+        {
+            compactName = "0";
+        }
+        gameObject.name = compactName;
+        enemyId = gameObject.name;
     }
 
     void Start()

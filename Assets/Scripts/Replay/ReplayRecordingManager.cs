@@ -108,16 +108,16 @@ public enum ReplayEventType
 [Serializable]
 public struct InputEvent
 {
-    public float timestamp;
-    public Vector2 inputDir;
-    public float rotationY;
-    public bool isSprinting;
-    public bool jump;
-    public bool leftClick;
-    public bool rightClick;
-    public bool konamiCode;
-    public Vector3 position;
-    public string interactId;
+    public float ts; //timeStamp
+    public Vector2 id; //inputDir
+    public float ry; //rotationY
+    public bool iS; //isSprinting
+    public bool j; //jump
+    public bool lc; //leftClick
+    public bool rc; //rightClick
+    public bool kc; //konamiCode
+    public Vector3 pos; //position
+    public string i; //interactId
 
     public InputEvent(
         float timestamp,
@@ -131,16 +131,15 @@ public struct InputEvent
         Vector3 position,
         string interactId)
     {
-        this.timestamp = timestamp;
-        this.inputDir = inputDir;
-        this.rotationY = rotationY;
-        this.isSprinting = isSprinting;
-        this.jump = jump;
-        this.leftClick = leftClick;
-        this.rightClick = rightClick;
-        this.konamiCode = konamiCode;
-        this.position = position;
-        this.interactId = interactId;
+        ts = timestamp;
+        id = inputDir;
+        ry = rotationY;
+        iS = isSprinting;
+        j = jump;
+        lc = leftClick;
+        rc = rightClick;
+        kc = konamiCode;
+        pos = position;
+        i = interactId;
     }
 }
-

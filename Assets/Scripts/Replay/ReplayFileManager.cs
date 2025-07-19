@@ -38,7 +38,7 @@ public class ReplayFileManager : MonoBehaviour
     public static string SaveToFile(ReplayData data)
     {
         string path = FilePath(data);
-        string json = JsonUtility.ToJson(data, true);
+        string json = JsonUtility.ToJson(data);
         File.WriteAllText(path, json);
         Debug.Log($"Replay saved to: {path}");
         return path;
