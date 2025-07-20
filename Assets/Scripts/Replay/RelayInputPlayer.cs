@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -32,8 +31,7 @@ public class ReplayInputPlayer : MonoBehaviour
     {
         double elapsedReplayTime = Time.timeSinceLevelLoad;
 
-        while (nextEventIndex < inputEvents.Count &&
-               inputEvents[nextEventIndex].ts <= elapsedReplayTime)
+        while (nextEventIndex < inputEvents.Count && inputEvents[nextEventIndex].ts <= elapsedReplayTime)
         {
             var evt = inputEvents[nextEventIndex];
             ApplyReplayInput(evt);
@@ -50,35 +48,46 @@ public class ReplayInputPlayer : MonoBehaviour
         {
             case ME move:
                 var p = new Vector3(move.x, move.y, move.z);
+
+                Vector3 previousPos = Player.Instance.transform.position;
+                float deltaTime = (float)(move.ts - (nextEventIndex > 0 ? inputEvents[nextEventIndex - 1].ts : move.ts));
+                deltaTime = Mathf.Max(deltaTime, 0.001f);
                 Player.Instance.SetReplayPosition(p);
+
                 break;
 
             case RE rotation:
                 Player.Instance.SetReplayRotation(rotation.ry);
                 break;
 
-            case CE click:
-                if (click.lc)
-                    Player.Instance.TriggerReplayClick();
-                if (click.rc)
-                    Player.Instance.TriggerReplayRightClick();
-                break;
-
-            case KE:
-                FindAnyObjectByType<KonamiCode>()?.cheatResult?.Invoke();
+            case SE:
+                Player.Instance.Shoot();
                 break;
 
             case IE interact:
+                Player.Instance.handAnim.PlayInteract();
+
                 if (!string.IsNullOrEmpty(interact.i))
                 {
                     GameObject target = GameObject.Find(interact.i);
                     if (target != null)
                     {
                         target.GetComponent<IInteractable>()?.OnInteract();
-
                     }
                 }
                 break;
+
+            case SH switchHand:
+                if (switchHand.ge != Player.Instance.gunEquipped)
+                {
+                    Player.Instance.SwitchHand();
+                }
+                break;
+
+            case KE:
+                FindAnyObjectByType<KonamiCode>()?.cheatResult?.Invoke();
+                break;
+
 
             default: break;
         }

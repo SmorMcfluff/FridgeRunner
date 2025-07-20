@@ -81,12 +81,14 @@ public class ReplayRecordingManager : MonoBehaviour
 public class ReplayData
 {
     public string scene;
+    public string version;
     public List<EnemyReplayData> enemyData;
     public List<InputEvent> inputEvents;
 
     public ReplayData(string scene, List<EnemyReplayData> enemyData, List<InputEvent> inputEvents)
     {
         this.scene = scene;
+        version = Application.version;
         this.enemyData = enemyData;
         this.inputEvents = inputEvents;
     }

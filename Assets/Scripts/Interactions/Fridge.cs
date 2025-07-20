@@ -13,6 +13,7 @@ public class Fridge : MonoBehaviour, IInteractable
     private float[] range;
 
     private bool isActivated = false;
+    private bool hasSaved = false;
 
     private void Start()
     {
@@ -41,6 +42,12 @@ public class Fridge : MonoBehaviour, IInteractable
             lookDir.Normalize();
             Quaternion targetRot = Quaternion.LookRotation(lookDir);
             player.transform.rotation = Quaternion.Slerp(player.transform.rotation, targetRot, Time.deltaTime * 5f);
+
+            if (!ReplayRecordingManager.Instance.isReplay && !hasSaved)
+            {
+                ReplayRecordingManager.Instance.SaveData();
+                hasSaved = true;
+            }
         }
     }
 
@@ -50,7 +57,6 @@ public class Fridge : MonoBehaviour, IInteractable
         if (isActivated) return;
         isActivated = true;
         GameManager.Instance.EndLevel(true);
-        ReplayRecordingManager.Instance.SaveData();
 
         player.GetComponent<Rigidbody>().isKinematic = true;
 

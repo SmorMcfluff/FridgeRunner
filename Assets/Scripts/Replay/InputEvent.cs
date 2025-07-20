@@ -7,9 +7,10 @@ public abstract class InputEvent
     public float ts; //timeStamp
 }
 
+//Movement Event
 public class ME : InputEvent
 {
-    public float x,y,z; //position
+    public float x, y, z; //position
 
     public ME(float ts, Vector3 p)
     {
@@ -20,7 +21,8 @@ public class ME : InputEvent
     }
 }
 
-public class RE : InputEvent 
+//Rotation Event
+public class RE : InputEvent
 {
     public float ry; //rotationY
 
@@ -31,34 +33,44 @@ public class RE : InputEvent
     }
 }
 
-public class CE : InputEvent
+//Shoot Event
+public class SE : InputEvent
 {
-    public bool lc;
-    public bool rc;
-
-    public CE(float ts, bool lc, bool rc)
-    {
-        this.ts = ts;
-        this.lc = lc;
-        this.rc = rc;
-    }
-}
-
-public class KE : InputEvent
-{
-    public KE(float ts)
+    public SE(float ts)
     {
         this.ts = ts;
     }
 }
 
+//Interact Event
 public class IE : InputEvent
 {
-    public string i;
+    public string i; //Name of object we interact with. Can be null/String.empty
 
     public IE(float ts, string i)
     {
         this.ts = ts;
         this.i = i;
+    }
+}
+
+//Switch Hand
+public class SH : InputEvent
+{
+    public bool ge; //gunEquipped
+    public SH(float ts, bool ge)
+    {
+        this.ts = ts;
+        this.ge = ge;
+    }
+}
+
+
+//Konami Event
+public class KE : InputEvent
+{
+    public KE(float ts)
+    {
+        this.ts = ts;
     }
 }

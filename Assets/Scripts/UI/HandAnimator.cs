@@ -192,6 +192,7 @@ public class HandAnimator : MonoBehaviour
 
         player.isInteracting = false;
         interactCoroutine = null;
+        imgComponent.sprite = idleSprite;
         currentState = HandState.Idle;
     }
 

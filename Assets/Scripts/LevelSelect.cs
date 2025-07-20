@@ -59,7 +59,6 @@ public class LevelSelect : MonoBehaviour
         foreach (string filePath in files)
         {
             string fileName = Path.GetFileNameWithoutExtension(filePath);
-
             GameObject entry = Instantiate(replayEntryPrefab, replayListParent);
             TMP_Text text = entry.GetComponentInChildren<TMP_Text>();
             text.text = fileName;

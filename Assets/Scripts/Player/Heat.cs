@@ -40,13 +40,7 @@ public class Heat : MonoBehaviour
 
         float baseTempGain = defaultHPS * Time.deltaTime;
 
-        bool isSprintingAndMoving =
-            player.IsSprinting &&
-            new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z).magnitude > 0.1f;
-
-        float sprintBonus = isSprintingAndMoving ? defaultHPS * 0.5f * Time.deltaTime : 0f;
-
-        bodyTemp += baseTempGain + sprintBonus + deltaTempFromChanges;
+        bodyTemp += baseTempGain + deltaTempFromChanges;
 
         CheckBodyTemp();
     }

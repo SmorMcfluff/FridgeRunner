@@ -31,7 +31,7 @@ public class ReplayFileManager : MonoBehaviour
             _=> "SceneName"
         };
         string sanitizedTime = time.Replace(":", "-").Replace(".", "-");
-        string baseFileName = $"{SanitizeFileName(scene)}_{sanitizedTime}";
+        string baseFileName = $"{SanitizeFileName(scene)}_{sanitizedTime}_v{Application.version}";
         string extension = ".COLDONE";
 
         string fullPath = Path.Combine(folder, baseFileName + extension);

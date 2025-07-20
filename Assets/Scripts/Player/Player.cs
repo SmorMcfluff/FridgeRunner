@@ -63,12 +63,6 @@ public class Player : MonoBehaviour
     private Vector2 replayInputDir = Vector2.zero;
     private bool isReplaying = false;
 
-    private bool replayJumpQueued = false;
-    private bool replayClickQueued = false;
-    private bool replayRightClickQueued = false;
-    private float lastReplayClickTime = -1f;
-    private float replayClickCooldown = 0.1f;
-
     void Awake()
     {
         Instance = this;
@@ -93,35 +87,13 @@ public class Player : MonoBehaviour
         if (ReplayRecordingManager.Instance.isReplay || isReplaying)
         {
             if (Input.GetKeyDown(KeyCode.Escape)) BackToMenu();
-            if (!GameManager.Instance.isCutscene)
-            {
-                if (replayJumpQueued && groundCheck.IsGrounded())
-                {
-                    isJumpQueued = true;
-                    replayJumpQueued = false;
-                }
-
-                if (replayClickQueued && Time.time - lastReplayClickTime > replayClickCooldown)
-                {
-                    if (gunEquipped)
-                        Shoot();
-                    else
-                        handAnim.PlayInteract();
-
-                    lastReplayClickTime = Time.time;
-                    replayClickQueued = false;
-                }
-
-                if (replayRightClickQueued && hasGun && !isSwitching && !isInteracting)
-                {
-                    SwitchHand();
-                    replayRightClickQueued = false;
-                }
-            }
 
             UpdateInteractPrompt();
             return;
         }
+
+        if (Input.GetKeyDown(KeyCode.R)) SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        if (Input.GetKeyDown(KeyCode.Escape)) BackToMenu();
 
         if (GameManager.Instance.isCutscene)
         {
@@ -133,8 +105,6 @@ public class Player : MonoBehaviour
         if (Input.GetMouseButtonDown(0)) bufferedLeftClick = true;
         if (Input.GetMouseButtonDown(1)) bufferedRightClick = true;
 
-        if (Input.GetKeyDown(KeyCode.R)) SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-        if (Input.GetKeyDown(KeyCode.Escape)) BackToMenu();
 
         inputDir = GetMoveDir();
 
@@ -164,6 +134,31 @@ public class Player : MonoBehaviour
         }
     }
 
+    private void TryShoot()
+    {
+        if (gunEquipped && !isSwitching)
+        {
+            Shoot();
+        }
+    }
+
+    private void TryInteract()
+    {
+        if (!gunEquipped && !isSwitching && !isInteracting)
+        {
+            Interact();
+        }
+    }
+
+    private void TrySwitchHand()
+    {
+        if (hasGun && !isSwitching && !isInteracting)
+        {
+            SwitchHand();
+        }
+    }
+
+
     private void RecordFrameInput()
     {
         float timestamp = Time.timeSinceLevelLoad;
@@ -176,16 +171,10 @@ public class Player : MonoBehaviour
         }
 
         float currentY = transform.eulerAngles.y;
-        if (lastRecordedRotationY == float.MinValue || Mathf.Abs(Mathf.DeltaAngle(currentY, lastRecordedRotationY)) > 1f)
+        if (lastRecordedRotationY == float.MinValue || Mathf.Abs(Mathf.DeltaAngle(currentY, lastRecordedRotationY)) > 0.1f)
         {
             ReplayRecordingManager.Instance.inputList.Add(new RE(timestamp, currentY));
             lastRecordedRotationY = currentY;
-        }
-
-        if (bufferedLeftClick || bufferedRightClick)
-        {
-            Debug.Log("recorded click");
-            record.inputList.Add(new CE(timestamp, bufferedLeftClick, bufferedRightClick));
         }
     }
 
@@ -197,17 +186,17 @@ public class Player : MonoBehaviour
 
     private void HandlePlayerInputMovement()
     {
-        if (bufferedLeftClick && !isInteracting && !isSwitching)
+        if (bufferedLeftClick)
         {
             if (gunEquipped)
-                Shoot();
+                TryShoot();
             else
-                Interact();
+                TryInteract();
         }
 
-        if (bufferedRightClick && hasGun && !isSwitching && !isInteracting)
+        if (bufferedRightClick)
         {
-            SwitchHand();
+            TrySwitchHand();
         }
 
         if (bufferedJump && groundCheck.IsGrounded())
@@ -223,6 +212,7 @@ public class Player : MonoBehaviour
         bufferedJump = bufferedLeftClick = bufferedRightClick = false;
     }
 
+
     private Vector2 GetMoveDir()
     {
         float xInput = Input.GetAxisRaw("Horizontal");
@@ -234,11 +224,18 @@ public class Player : MonoBehaviour
     {
         isInteracting = true;
         handAnim.PlayInteract();
+        Debug.Log("Interacted!");
         if (Physics.Raycast(transform.position, transform.forward, out RaycastHit hit, interactRange))
         {
             IInteractable interactable = hit.collider.GetComponent<IInteractable>();
             interactable?.OnInteract();
+            Debug.Log("We hit " + hit.collider.gameObject.name);
             RecordFrameInput(hit.collider.gameObject.name);
+        }
+        else
+        {
+            Debug.Log("We hit nothing");
+            RecordFrameInput(string.Empty);
         }
     }
 
@@ -306,12 +303,24 @@ public class Player : MonoBehaviour
         isSwitching = true;
         handAnim.SwitchHand(!gunEquipped);
         gunEquipped = !gunEquipped;
+
+        if (!ReplayRecordingManager.Instance.isReplay)
+        {
+            ReplayRecordingManager.Instance.inputList.Add(new SH(Time.timeSinceLevelLoad, gunEquipped));
+        }
     }
 
-    private void Shoot()
+    public void Shoot()
     {
+        if (!ReplayRecordingManager.Instance.isReplay)
+        {
+            ReplayRecordingManager.Instance.inputList.Add(new SE(Time.timeSinceLevelLoad));
+            ReplayRecordingManager.Instance.inputList.Add(new RE(Time.timeSinceLevelLoad, transform.eulerAngles.y));
+
+        }
+
         sound.ShootSound();
-        if (Physics.Raycast(transform.position, transform.forward, out RaycastHit hit, Mathf.Infinity))
+        if (Physics.SphereCast(transform.position, 0.5f, transform.forward, out RaycastHit hit, Mathf.Infinity))
         {
             IDamageable damageable = hit.collider.GetComponent<IDamageable>();
             damageable?.TakeDamage(1);
@@ -340,8 +349,7 @@ public class Player : MonoBehaviour
 
         if (Physics.Raycast(transform.position, transform.forward, out RaycastHit hit, interactRange))
         {
-            IInteractable interactable = hit.collider.GetComponent<IInteractable>();
-            if (interactable != null)
+            if (hit.collider.TryGetComponent<IInteractable>(out _))
             {
                 interactPrompt.gameObject.SetActive(true);
                 interactPrompt.text = gunEquipped ? "RightClick to holster Gun" : "LeftClick to Interact";
@@ -370,8 +378,5 @@ public class Player : MonoBehaviour
         transform.position = pos;
     }
 
-    public void TriggerReplayJump() => replayJumpQueued = true;
-    public void TriggerReplayClick() => replayClickQueued = true;
-    public void TriggerReplayRightClick() => replayRightClickQueued = true;
     public void SetReplaySprinting(bool isSprinting) => replayIsSprinting = isSprinting;
 }

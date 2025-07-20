@@ -23,7 +23,10 @@ public class Pickup : MonoBehaviour
                 case Type.Gun:
                     if (Player.Instance.hasGun) return;
                     Player.Instance.hasGun = true;
-                    Player.Instance.SwitchHand();
+                    if (!ReplayRecordingManager.Instance.isReplay)
+                    {
+                        Player.Instance.SwitchHand();
+                    }
                     break;
 
                 default: break;
